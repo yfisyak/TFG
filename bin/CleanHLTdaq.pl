@@ -23,6 +23,7 @@ foreach my $file (@List) {
   my $globEv = $Dir . "/*event.root"; 
   my @EventList = glob $globEv;
   my $count = $#EventList;  print "$globEv = > EventList = @EventList, count = $count\n" if ($debug);
+  if ($count < 0) {next;}
   my @daqs = ();
   my $kept = 0;
   foreach my $pico (@PicoList) {
