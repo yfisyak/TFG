@@ -6,6 +6,8 @@
   select unix_timestamp("2021-01-01 00:00:00"); 1609459200
   select unix_timestamp("2022-01-01 00;00:00"); 1640995200
   T->Draw("current:time-31640400","current>-4540&&current<-4460")
+  T->Draw("current:time-946684800>>h2021","current>-4550&&current<-4450&&time>1609459200")
+  T->Draw("current:(time-1609459200)/24/60/60+1>>h2021","current>-4550&&current<-4450&&time>1609459200")
 */
 #ifndef __CINT__
 #include "Riostream.h"

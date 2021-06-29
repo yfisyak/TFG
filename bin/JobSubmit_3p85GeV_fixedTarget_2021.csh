@@ -35,7 +35,7 @@ foreach d (`ls -1d ???/2*`)
 #  set day = `dirname $d`
 #  if (${day} < 164) then
   set run = `basename ${d}`;  
-  if (${run} > 22160013 && ${run} < 22165000) then
+  if (${run} >= 22158001  && ${run} <= 22165000) then
 #  if (${day} == 121 || ${day} >= 158) then
 #  /net/l402/data/fisyak/STAR/packages/.DEV2/scripts/star-submit -p bnl_condor_online_CpuModelNumber63 ~/xml/daq_2021StiCA.Minuit.TFG19m.xml
 #  /net/l402/data/fisyak/STAR/packages/.DEV2/scripts/star-submit -p bnl_condor_online_CpuModelNumber6X ~/xml/daq_2021StiCA.Minuit.TFG20a.xml
@@ -44,8 +44,8 @@ foreach d (`ls -1d ???/2*`)
 #  /net/l402/data/fisyak/STAR/packages/.DEV2/scripts/star-submit -p bnl_condor_online_CpuModelNumber6X ~/xml/daq_2021.DEV2.xml
 #  /net/l402/data/fisyak/STAR/packages/.DEV2/scripts/star-submit -p bnl_condor_online_CpuModelNumber6X ~/xml/daq_2021.TFG21e.xml
   /net/l402/data/fisyak/STAR/packages/.DEV2/scripts/star-submit -p bnl_condor_online_CpuModelNumber6X ~/xml/daq_2021.TFG21g.xml
-  endif
   touch Submitted
+  endif
   cd -
 end
 #================================= Summurizing  ===============================================
