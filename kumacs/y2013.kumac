@@ -8,7 +8,8 @@
 macro y2013
 *  starsim -w 1 -b y2013.kumac
 *  DETP geom y2013_1x  
-  DETP geom y2013_2x  
+*  DETP geom y2013_2x  
+  DETP geom y2013_2c  
 * field=-5  hadr_off=1
   gexec $STAR_LIB/StarMagFieldNoDict.so
   gexec $STAR_LIB/xgeometry.so
