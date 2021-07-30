@@ -1,5 +1,8 @@
-// $Id: St_geant_Maker.cxx,v 1.156 2015/10/30 13:37:10 jwebb Exp $
+// $Id: St_geant_Maker.cxx,v 1.157 2016/05/02 17:24:54 jwebb Exp $
 // $Log: St_geant_Maker.cxx,v $
+// Revision 1.157  2016/05/02 17:24:54  jwebb
+// Remove unused call to geant3->Gfhead, whose only purpose seems to be to cause a corruption of the stack (see ticket 3204).
+//
 // Revision 1.156  2015/10/30 13:37:10  jwebb
 // Removed unnecessary printout of number of FTS hits.
 //
@@ -1034,18 +1037,18 @@ Int_t St_geant_Maker::InitRun(Int_t run){
 	}
       }
     }
-    if (! ifz && IAttr("beamLine")) {
-      St_vertexSeedC* vSeed = St_vertexSeedC::instance();
-      if (vSeed) {
-	Double_t x0   = vSeed->x0()  ;// Double_t err_x0   = vSeed->err_x0();
-	Double_t y0   = vSeed->y0()  ;// Double_t err_y0   = vSeed->err_y0();
-	Double_t z0   = 0            ;// Double_t err_z0   = 60; 
-	Double_t dxdz = vSeed->dxdz();
-	Double_t dydz = vSeed->dydz(); 
-	Do(Form("gvertex   %f %f %f",x0,y0,z0)); // ** setup the vertex
-	//	Do(Form("gspread %f %f %f",err_x0,err_y0,err_z0));
-	Do(Form("gslope  %f %f", dxdz, dydz));
-      }
+  }
+  if (! ifz && IAttr("beamLine")) {
+    St_vertexSeedC* vSeed = St_vertexSeedC::instance();
+    if (vSeed) {
+      Double_t x0   = vSeed->x0()  ;// Double_t err_x0   = vSeed->err_x0();
+      Double_t y0   = vSeed->y0()  ;// Double_t err_y0   = vSeed->err_y0();
+      Double_t z0   = 0            ;// Double_t err_z0   = 60; 
+      Double_t dxdz = vSeed->dxdz();
+      Double_t dydz = vSeed->dydz(); 
+      Do(Form("gvertex   %f %f %f",x0,y0,z0)); // ** setup the vertex
+      //	Do(Form("gspread %f %f %f",err_x0,err_y0,err_z0));
+      Do(Form("gslope  %f %f", dxdz, dydz));
     }
   }
   if (IAttr("fzout") && GetChain()->GetTFile()) {
@@ -1064,21 +1067,15 @@ Int_t St_geant_Maker::Make() {
   int iRes = 0; if(iRes) {/*touch*/};
   Do("trig");
   
-  //  LOG_INFO << "Make() " << endm;
-
   // check EoF
   if (cquest->iquest[0]) {return kStEOF;}
-  Int_t Nwhead,Ihead[100];
-  Int_t Nwbuf;
-  Float_t Ubuf[100];
-  
   // prepare an empty g2t_event
   St_g2t_event *g2t_event = new St_g2t_event("g2t_event",1);  
   m_DataSet->Add(g2t_event);
   
   Char_t   cgnam[21] = "                   \0";                               
   Agnzgete(link,ide,npart,irun,ievt,cgnam,vert,iwtfl,weigh);
-  geant3->Gfhead(Nwhead,Ihead,Nwbuf,Ubuf);
+
   //  if (m_Mode%10 != 1) {
   if (! IAttr("Don'tTouchTimeStamp")) {
     if (fEvtHddr) {
@@ -1172,6 +1169,12 @@ Int_t St_geant_Maker::Make() {
     if(fEvtHddr) {
       fEvtHddr->SetAEast((*g2t_event)[0].n_wounded_east);
       fEvtHddr->SetAWest((*g2t_event)[0].n_wounded_west);
+    }
+    static Int_t eventIdC = 0;
+    eventIdC++;
+    if (fEvtHddr->GetRunNumber() == -1 && fEvtHddr->GetEventNumber() == -1) {
+      fEvtHddr->SetRunNumber(1);
+      fEvtHddr->SetEventNumber(eventIdC);
     }
   }
   //---------------------- inner part -------------------------//
@@ -1770,7 +1773,7 @@ TDataSet *St_geant_Maker::Work()
   if (!gGeometry) new TGeometry("STAR","nash STAR");
   GtHash *H = new GtHash;
   
-  printf(" looping on agvolume \n");
+  if (Debug()) { LOG_INFO << "looping on agvolume" << endm;}
   //   ===============================================================
   //  while(agvolume(node,volu,position,mother,who,copy,p,npar)) {
     //  while(agvolume(&node,&volu,&position,&mother,&who,&copy,&p,&npar)) {

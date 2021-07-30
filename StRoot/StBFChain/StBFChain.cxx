@@ -401,7 +401,7 @@ Int_t StBFChain::Instantiate()
 	  CintF != "") {
 	mk->SetActive(kTRUE);
 	//	if (GetOption("PrepEmbed")) mk->SetMode(10*(mk->GetMode()/10)+1);
-	if (GetOption("PrepEmbed") || GetOption("pythiaEmbed") || GetOption("fzinSDT")) mk->SetAttr("Don'tTouchTimeStamp",1);
+	if (GetOption("Embedding") || GetOption("PrepEmbed") || GetOption("pythiaEmbed") || GetOption("fzinSDT")) mk->SetAttr("Don'tTouchTimeStamp",1);
 	if (GetOption("flux"))      mk->SetAttr("flux",1);
 	if (GetOption("fzout"))     mk->SetAttr("fzout",1);
 	if (GetOption("beamLine"))  mk->SetAttr("beamLine",1);
