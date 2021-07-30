@@ -56,13 +56,14 @@ names without this suffix 'h'.
 
 namespace Heed {
 
+const int max_poss_atom_z = 100;
+
 class AtomDef : public RegPassivePtr {
   String nameh;
   String notationh;
   int Zh;
   // Atomic mass in internal units. Transfer to gram/mole if need.
   double Ah;
-  static const int max_poss_atom_z = 100;
 
  public:
   AtomDef(void);

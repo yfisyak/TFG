@@ -27,9 +27,9 @@ class ComponentAnalyticField : public ComponentBase {
 
   void WeightingField(const double x, const double y, const double z,
                       double& wx, double& wy, double& wz,
-                      const std::string& label);
+                      const std::string label);
   double WeightingPotential(const double x, const double y, const double z,
-                            const std::string& label);
+                            const std::string label);
 
   bool GetBoundingBox(double& x0, double& y0, double& z0, double& x1,
                       double& y1, double& z1);
@@ -37,8 +37,8 @@ class ComponentAnalyticField : public ComponentBase {
   bool IsWireCrossed(double x0, double y0, double z0, double x1, double y1,
                      double z1, double& xc, double& yc, double& zc);
 
-  bool IsInTrapRadius(const double q0, const double x0, const double y0, 
-                      const double z0, double& xw, double& yx, double& rw);
+  bool IsInTrapRadius(double x0, double y0, double z0, double& xw, double& yx,
+                      double& rw);
 
   // Add a wire at (x, y) .
   void AddWire(const double x, const double y, const double diameter,
@@ -71,12 +71,7 @@ class ComponentAnalyticField : public ComponentBase {
   void ClearCharges();
   void PrintCharges();
 
-  std::string GetCellType() { 
-    if (!cellset) {
-      if (CellCheck()) CellType();
-    }
-    return m_scellType; 
-  }
+  std::string GetCellType() { return cellType; }
   // Cells are classified according to the number
   // and orientation of planes, the presence of
   // periodicities and the location of the wires
@@ -112,22 +107,6 @@ class ComponentAnalyticField : public ComponentBase {
 
   bool GetTube(double& r, double& voltage, int& nEdges, std::string& label);
 
-  enum Cell {
-    A00,
-    B1X,
-    B1Y,
-    B2X,
-    B2Y,
-    C10,
-    C2X,
-    C2Y,
-    C30,
-    D10,
-    D20,
-    D30,
-    D40,
-    Unknown
-  };
  private:
   bool chargeCheck;
 
@@ -137,8 +116,8 @@ class ComponentAnalyticField : public ComponentBase {
   bool polar;
 
   // Cell type (as string and number)
-  std::string m_scellType;
-  Cell m_cellType;
+  std::string cellType;
+  int iCellType;
 
   // Bounding box
   double xmin, xmax;
@@ -154,7 +133,7 @@ class ComponentAnalyticField : public ComponentBase {
 
   // Signals
   int nFourier;
-  std::string m_scellTypeFourier;
+  std::string cellTypeFourier;
   bool fperx, fpery;
   int mxmin, mxmax, mymin, mymax;
   int mfexp;
@@ -257,13 +236,13 @@ class ComponentAnalyticField : public ComponentBase {
   std::vector<plane> planes;
 
   // Tube
-  bool m_tube;
-  int m_mtube, m_ntube;
-  double m_cotube;
-  double m_vttube;
+  bool tube;
+  int mtube, ntube;
+  double cotube;
+  double vttube;
 
   // Capacitance matrix
-  std::vector<std::vector<double> > m_a;
+  std::vector<std::vector<double> > a;
   // Signal matrix
   std::vector<std::vector<std::complex<double> > > sigmat;
   // Induced charges on planes

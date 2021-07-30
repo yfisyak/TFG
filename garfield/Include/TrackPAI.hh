@@ -29,34 +29,34 @@ class TrackPAI : public Track {
   double GetStoppingPower();
 
  private:
-  bool m_ready;
+  bool ready;
 
   // Particle coordinates and direction
-  double m_x, m_y, m_z, m_t;
-  double m_dx, m_dy, m_dz;
+  double x, y, z, t;
+  double dx, dy, dz;
   // Particle energy and speed
-  double m_e;
-  double m_speed;
+  double e;
+  double speed;
   // Max. energy transfer in a collision
-  double m_emax;
+  double emax;
 
   // Total inelastic mean free path
-  double m_imfp;
+  double imfp;
   // Stopping power
-  double m_dedx;
+  double dedx;
 
   // Dielectric function
-  int m_nSteps;
+  int nSteps;
   struct opticalData {
     double eps1, eps2;
     double integral;
   };
-  std::vector<opticalData> m_opticalDataTable;
+  std::vector<opticalData> opticalDataTable;
 
   // Tables for interpolation of cumulative distribution functions
-  std::vector<double> m_energies;
-  std::vector<double> m_cdf;
-  std::vector<double> m_rutherford;
+  std::vector<double> energies;
+  std::vector<double> cdf;
+  std::vector<double> rutherford;
 
   struct electron {
     // Direction
@@ -66,13 +66,13 @@ class TrackPAI : public Track {
     // Type (electron, hole)
     int type;
   };
-  std::vector<electron> m_electrons;
-  std::vector<electron> m_holes;
+  std::vector<electron> electrons;
+  std::vector<electron> holes;
 
   // Medium properties
-  std::string m_mediumName;
-  double m_mediumDensity;
-  double m_electronDensity;
+  std::string mediumName;
+  double mediumDensity;
+  double electronDensity;
 
   bool SetupMedium(Medium* medium);
   bool SetupCrossSectionTable();

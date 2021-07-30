@@ -18,15 +18,12 @@ ComponentFieldMap::ComponentFieldMap()
       lastElement(-1),
       cacheElemBoundingBoxes(false),
       nNodes(-1),
-      m_nMaterials(0),
+      nMaterials(-1),
       nWeightingFields(0),
       hasBoundingBox(false),
       deleteBackground(true),
       checkMultipleElement(false),
-      warning(false),
-      tetTree(NULL),
-      useTetrahedralTreeForSearch(false),
-      isTreeInitialized(false){
+      warning(false) {
 
   m_className = "ComponentFieldMap";
 
@@ -37,32 +34,27 @@ ComponentFieldMap::ComponentFieldMap()
   wfieldsOk.clear();
 }
 
-ComponentFieldMap::~ComponentFieldMap() {
-  if(tetTree)
-      delete tetTree;
-}
-
 void ComponentFieldMap::PrintMaterials() {
 
   // Do not proceed if not properly initialised.
-  if (!m_ready) {
+  if (!ready) {
     std::cerr << m_className << "::PrintMaterials:\n";
     std::cerr << "    Field map not yet initialised.\n";
     return;
   }
 
-  if (m_nMaterials == 0) {
+  if (nMaterials < 0) {
     std::cerr << m_className << "::PrintMaterials:\n";
     std::cerr << "    No materials are currently defined.\n";
     return;
   }
 
   std::cout << m_className << "::PrintMaterials:\n";
-  std::cout << "    Currently " << m_nMaterials << " materials are defined.\n";
+  std::cout << "    Currently " << nMaterials << " materials are defined.\n";
   std::cout << "      Index Permittivity  Resistivity Notes\n";
-  for (unsigned int i = 0; i < m_nMaterials; ++i) {
+  for (int i = 0; i < nMaterials; ++i) {
     printf("      %5d %12g %12g", i, materials[i].eps, materials[i].ohm);
-    if (materials[i].medium) {
+    if (materials[i].medium != 0) {
       std::string name = materials[i].medium->GetName();
       std::cout << " " << name;
       if (materials[i].medium->IsDriftable()) std::cout << ", drift medium";
@@ -76,10 +68,10 @@ void ComponentFieldMap::PrintMaterials() {
   }
 }
 
-void ComponentFieldMap::DriftMedium(const unsigned int imat) {
+void ComponentFieldMap::DriftMedium(int imat) {
 
   // Do not proceed if not properly initialised.
-  if (!m_ready) {
+  if (!ready) {
     std::cerr << m_className << "::DriftMedium:\n";
     std::cerr << "    Field map not yet initialised.\n";
     std::cerr << "    Drift medium cannot be selected.\n";
@@ -87,7 +79,7 @@ void ComponentFieldMap::DriftMedium(const unsigned int imat) {
   }
 
   // Check value
-  if (imat >= m_nMaterials) {
+  if (imat < 0 || imat >= nMaterials) {
     std::cerr << m_className << "::DriftMedium:\n";
     std::cerr << "    Material index " << imat << " is out of range.\n";
     return;
@@ -97,10 +89,10 @@ void ComponentFieldMap::DriftMedium(const unsigned int imat) {
   materials[imat].driftmedium = true;
 }
 
-void ComponentFieldMap::NotDriftMedium(const unsigned int imat) {
+void ComponentFieldMap::NotDriftMedium(const int imat) {
 
   // Do not proceed if not properly initialised.
-  if (!m_ready) {
+  if (!ready) {
     std::cerr << m_className << "::NotDriftMedium:\n";
     std::cerr << "    Field map not yet initialised.\n";
     std::cerr << "    Drift medium cannot be selected.\n";
@@ -108,7 +100,7 @@ void ComponentFieldMap::NotDriftMedium(const unsigned int imat) {
   }
 
   // Check value
-  if (imat >= m_nMaterials) {
+  if (imat < 0 || imat >= nMaterials) {
     std::cerr << m_className << "::NotDriftMedium:\n";
     std::cerr << "    Material index " << imat << " is out of range.\n";
     return;
@@ -118,9 +110,9 @@ void ComponentFieldMap::NotDriftMedium(const unsigned int imat) {
   materials[imat].driftmedium = false;
 }
 
-double ComponentFieldMap::GetPermittivity(const unsigned int imat) {
+double ComponentFieldMap::GetPermittivity(const int imat) {
 
-  if (imat >= m_nMaterials) {
+  if (imat < 0 || imat >= nMaterials) {
     std::cerr << m_className << "::GetPermittivity:\n";
     std::cerr << "    Material index " << imat << " is out of range.\n";
     return -1.;
@@ -129,9 +121,9 @@ double ComponentFieldMap::GetPermittivity(const unsigned int imat) {
   return materials[imat].eps;
 }
 
-double ComponentFieldMap::GetConductivity(const unsigned int imat) {
+double ComponentFieldMap::GetConductivity(const int imat) {
 
-  if (imat >= m_nMaterials) {
+  if (imat < 0 || imat >= nMaterials) {
     std::cerr << m_className << "::GetConductivity:\n";
     std::cerr << "    Material index " << imat << " is out of range.\n";
     return -1.;
@@ -140,9 +132,9 @@ double ComponentFieldMap::GetConductivity(const unsigned int imat) {
   return materials[imat].ohm;
 }
 
-void ComponentFieldMap::SetMedium(const unsigned int imat, Medium* m) {
+void ComponentFieldMap::SetMedium(const int imat, Medium* m) {
 
-  if (imat >= m_nMaterials) {
+  if (imat < 0 || imat >= nMaterials) {
     std::cerr << m_className << "::SetMedium:\n";
     std::cerr << "    Material index " << imat << " is out of range.\n";
     return;
@@ -154,7 +146,7 @@ void ComponentFieldMap::SetMedium(const unsigned int imat, Medium* m) {
     return;
   }
 
-  if (m_debug) {
+  if (debug) {
     std::string name = m->GetName();
     std::cout << m_className << "::SetMedium:\n";
     std::cout << "    Associated material " << imat << " with medium " << name
@@ -164,9 +156,9 @@ void ComponentFieldMap::SetMedium(const unsigned int imat, Medium* m) {
   materials[imat].medium = m;
 }
 
-Medium* ComponentFieldMap::GetMedium(const unsigned int imat) const {
+Medium* ComponentFieldMap::GetMedium(const unsigned int& imat) const {
 
-  if (imat >= m_nMaterials) {
+  if (imat >= (unsigned int)nMaterials) {
     std::cerr << m_className << "::GetMedium:\n";
     std::cerr << "    Material index " << imat << " is out of range.\n";
     return NULL;
@@ -203,24 +195,6 @@ int ComponentFieldMap::FindElement5(const double x, const double y,
     cacheElemBoundingBoxes = true;
   }
 
-  // this variable tracks how many elements to scan. with tetra tree disabled, all elements are scanned
-  int numElemToSearch = nElements;
-  // the list to store the tetra list in the block that contains the input 3D point.
-  std::vector<int> tetList;
-
-  // Check if the tetrahedral is enabled
-  if(useTetrahedralTreeForSearch) {
-    if(!isTreeInitialized) {
-      if(!InitializeTetrahedralTree()) {
-        std::cerr << m_className << "::FindElement5:\n";
-        std::cerr << "    Tetrahedral tree initialization failed.\n";
-        return -1;
-      }
-    }
-    tetList = tetTree->GetTetListInBlock( Vec3(x, y, z) );
-    numElemToSearch = tetList.size();
-  }
-
   // Backup
   double jacbak[4][4], detbak = 1.;
   double t1bak = 0., t2bak = 0., t3bak = 0., t4bak = 0.;
@@ -252,33 +226,26 @@ int ComponentFieldMap::FindElement5(const double x, const double y,
   const double f = 0.2;
 
   // Scan all elements
-  for (int i = 0; i < numElemToSearch; ++i) {
-    int idxToElemList;
-    
-    if(useTetrahedralTreeForSearch)
-      idxToElemList = tetList[i];
-    else
-      idxToElemList = i;
-
-    element& e = elements[idxToElemList];
+  for (int i = 0; i < nElements; ++i) {
+    element& e = elements[i];
     if (x < e.xmin - f * (e.xmax - e.xmin) || x > e.xmax + f * (e.xmax - e.xmin) ||
         y < e.ymin - f * (e.ymax - e.ymin) || y > e.ymax + f * (e.ymax - e.ymin) ||
         z < e.zmin - f * (e.zmax - e.zmin) || z > e.zmax + f * (e.zmax - e.zmin))
       continue;
 
-    if (elements[idxToElemList].degenerate) {
+    if (elements[i].degenerate) {
       // Degenerate element
-      rc = Coordinates3(x, y, z, t1, t2, t3, t4, jac, det, idxToElemList);
+      rc = Coordinates3(x, y, z, t1, t2, t3, t4, jac, det, i);
       if (rc == 0 && t1 >= 0 && t1 <= +1 && t2 >= 0 && t2 <= +1 && t3 >= 0 &&
           t3 <= +1) {
         ++nfound;
-        imap = idxToElemList;
-        lastElement = idxToElemList;
-        if (m_debug) {
+        imap = i;
+        lastElement = i;
+        if (debug) {
           std::cout << m_className << "::FindElement5:\n";
-          std::cout << "    Found matching degenerate element " << idxToElemList << ".\n";
+          std::cout << "    Found matching degenerate element " << i << ".\n";
         }
-        if (!checkMultipleElement) return idxToElemList;
+        if (!checkMultipleElement) return i;
         for (int j = 0; j < 4; ++j) {
           for (int k = 0; k < 4; ++k) jacbak[j][k] = jac[j][k];
         }
@@ -288,7 +255,7 @@ int ComponentFieldMap::FindElement5(const double x, const double y,
         t3bak = t3;
         t4bak = t4;
         imapbak = imap;
-        if (m_debug) {
+        if (debug) {
           std::cout << m_className << "::FindElement5:\n";
           std::cout << "    Global = (" << x << ", " << y << ")\n";
           std::cout << "    Local = (" << t1 << ", " << t2 << ", " << t3 << ", "
@@ -307,17 +274,17 @@ int ComponentFieldMap::FindElement5(const double x, const double y,
       }
     } else {
       // Non-degenerate element
-      rc = Coordinates5(x, y, z, t1, t2, t3, t4, jac, det, idxToElemList);
+      rc = Coordinates5(x, y, z, t1, t2, t3, t4, jac, det, i);
       if (rc == 0 && t1 >= -1 && t1 <= +1 && t2 >= -1 && t2 <= +1) {
         ++nfound;
-        imap = idxToElemList;
-        lastElement = idxToElemList;
-        if (m_debug) {
+        imap = i;
+        lastElement = i;
+        if (debug) {
           std::cout << m_className << "::FindElement5:\n";
-          std::cout << "    Found matching non-degenerate element " << idxToElemList
+          std::cout << "    Found matching non-degenerate element " << i
                     << ".\n";
         }
-        if (!checkMultipleElement) return idxToElemList;
+        if (!checkMultipleElement) return i;
         for (int j = 0; j < 4; ++j) {
           for (int k = 0; k < 4; ++k) jacbak[j][k] = jac[j][k];
         }
@@ -327,7 +294,7 @@ int ComponentFieldMap::FindElement5(const double x, const double y,
         t3bak = t3;
         t4bak = t4;
         imapbak = imap;
-        if (m_debug) {
+        if (debug) {
           std::cout << m_className << "::FindElement5:\n";
           std::cout << "    Global = (" << x << ", " << y << ")\n";
           std::cout << "    Local = (" << t1 << ", " << t2 << ", " << t3 << ", "
@@ -350,7 +317,7 @@ int ComponentFieldMap::FindElement5(const double x, const double y,
   // In checking mode, verify the tetrahedron/triangle count.
   if (checkMultipleElement) {
     if (nfound < 1) {
-      if (m_debug) {
+      if (debug) {
         std::cout << m_className << "::FindElement5:\n";
         std::cout << "    No element matching point (" << x << ", " << y
                   << ") found.\n";
@@ -378,7 +345,7 @@ int ComponentFieldMap::FindElement5(const double x, const double y,
     }
   }
 
-  if (m_debug) {
+  if (debug) {
     std::cout << m_className << "::FindElement5:\n";
     std::cout << "    No element matching point (" << x << ", " << y
               << ") found.\n";
@@ -417,24 +384,6 @@ int ComponentFieldMap::FindElement13(const double x, const double y,
       return lastElement;
   }
 
-  // this variable tracks how many elements to scan. with tetra tree disabled, all elements are scanned
-  int numElemToSearch = nElements;
-  // the list to store the tetra list in the block that contains the input 3D point.
-  std::vector<int> tetList;
-
-  // Check if the tetrahedral is enabled
-  if(useTetrahedralTreeForSearch) {
-    if(!isTreeInitialized) {
-      if(!InitializeTetrahedralTree()) {
-        std::cerr << m_className << "::FindElement13:\n";
-        std::cerr << "    Tetrahedral tree initialization failed.\n";
-        return -1;
-      }
-    }
-    tetList = tetTree->GetTetListInBlock( Vec3(x, y, z) );
-    numElemToSearch = tetList.size();
-  }
-
   // Verify the count of volumes that contain the point.
   int nfound = 0;
   int imap = -1;
@@ -443,33 +392,25 @@ int ComponentFieldMap::FindElement13(const double x, const double y,
   const double f = 0.2;
 
   // Scan all elements
-  for (int i = 0; i < numElemToSearch; i++) {
-    int idxToElemList;
-    
-    if(useTetrahedralTreeForSearch)
-      idxToElemList = tetList[i];
-    else
-      idxToElemList = i;
-
-    element& e = elements[idxToElemList];
-
+  for (int i = 0; i < nElements; i++) {
+    element& e = elements[i];
     if (x < e.xmin - f * (e.xmax - e.xmin) || x > e.xmax + f * (e.xmax - e.xmin) ||
         y < e.ymin - f * (e.ymax - e.ymin) || y > e.ymax + f * (e.ymax - e.ymin) ||
         z < e.zmin - f * (e.zmax - e.zmin) || z > e.zmax + f * (e.zmax - e.zmin))
       continue;
 
-    rc = Coordinates13(x, y, z, t1, t2, t3, t4, jac, det, idxToElemList);
+    rc = Coordinates13(x, y, z, t1, t2, t3, t4, jac, det, i);
 
     if (rc == 0 && t1 >= 0 && t1 <= +1 && t2 >= 0 && t2 <= +1 && t3 >= 0 &&
         t3 <= +1 && t4 >= 0 && t4 <= +1) {
       ++nfound;
-      imap = idxToElemList;
-      lastElement = idxToElemList;
-      if (m_debug) {
+      imap = i;
+      lastElement = i;
+      if (debug) {
         std::cout << m_className << "::FindElement13:\n";
         std::cout << "    Found matching element " << i << ".\n";
       }
-      if (!checkMultipleElement) return idxToElemList;
+      if (!checkMultipleElement) return i;
       for (int j = 0; j < 4; ++j) {
         for (int k = 0; k < 4; ++k) jacbak[j][k] = jac[j][k];
       }
@@ -479,7 +420,7 @@ int ComponentFieldMap::FindElement13(const double x, const double y,
       t3bak = t3;
       t4bak = t4;
       imapbak = imap;
-      if (m_debug) {
+      if (debug) {
         std::cout << m_className << "::FindElement13:\n";
         std::cout << "    Global = (" << x << ", " << y << ")\n";
         std::cout << "    Local = (" << t1 << ", " << t2 << ", " << t3 << ", "
@@ -501,7 +442,7 @@ int ComponentFieldMap::FindElement13(const double x, const double y,
   // In checking mode, verify the tetrahedron/triangle count.
   if (checkMultipleElement) {
     if (nfound < 1) {
-      if (m_debug) {
+      if (debug) {
         std::cout << m_className << "::FindElement13:\n";
         std::cout << "    No element matching point (" << x << ", " << y << ", "
                   << z << ") found.\n";
@@ -529,7 +470,7 @@ int ComponentFieldMap::FindElement13(const double x, const double y,
     }
   }
 
-  if (m_debug) {
+  if (debug) {
     std::cout << m_className << "::FindElement13:\n";
     std::cout << "    No element matching point (" << x << ", " << y << ", "
               << z << ") found.\n";
@@ -569,7 +510,7 @@ int ComponentFieldMap::FindElementCube(const double x, const double y,
   }
 
   if (imap < 0) {
-    if (m_debug) {
+    if (debug) {
       std::cout << m_className << "::FindElementCube:\n";
       std::cout << "    Point (" << x << "," << y << "," << z
                 << ") not in the mesh, it is background or PEC.\n";
@@ -598,7 +539,7 @@ int ComponentFieldMap::FindElementCube(const double x, const double y,
     return -1;
   }
   CoordinatesCube(x, y, z, t1, t2, t3, jac, dN, imap);
-  if (m_debug) {
+  if (debug) {
     std::cout << m_className << "::FindElementCube:\n";
     std::cout << "Global: (" << x << "," << y << "," << z << ") in element "
               << imap << " (degenerate: " << elements[imap].degenerate << ")\n";
@@ -2264,7 +2205,7 @@ void ComponentFieldMap::JacobianCube(int element, double t1, double t2,
   }
 
   // compute determinant
-  if (m_debug) {
+  if (debug) {
     std::cout << m_className << "::JacobianCube:" << std::endl;
     std::cout << "   Det.: " << jac->Determinant() << std::endl;
     std::cout << "   Jacobian matrix.: " << std::endl;
@@ -2286,7 +2227,7 @@ int ComponentFieldMap::Coordinates3(double x, double y, double z, double& t1,
                                     double& t2, double& t3, double& t4,
                                     double jac[4][4], double& det, int imap) {
 
-  if (m_debug) {
+  if (debug) {
     std::cout << m_className << "::Coordinates3:\n";
     std::cout << "   Point (" << x << ", " << y << ", " << z << ")\n";
   }
@@ -2367,7 +2308,7 @@ int ComponentFieldMap::Coordinates3(double x, double y, double z, double& t1,
 
   // Start iterative refinement
   double td1 = t1, td2 = t2, td3 = t3;
-  if (m_debug) {
+  if (debug) {
     std::cout << m_className << "::Coordinates3:\n";
     std::cout << "    Linear estimate:   (u, v, w) = (" << td1 << ", " << td2
               << ", " << td3 << "), sum = " << td1 + td2 + td3 << ".\n";
@@ -2378,7 +2319,7 @@ int ComponentFieldMap::Coordinates3(double x, double y, double z, double& t1,
   double diff[3] = {0., 0., 0.};
   double corr[3] = {0., 0., 0.};
   for (int iter = 0; iter < 10; iter++) {
-    if (m_debug) {
+    if (debug) {
       std::cout << m_className << "::Coordinates3:\n";
       std::cout << "    Iteration " << iter << ":     (u, v, w) = (" << td1
                 << ", " << td2 << ", " << td3 << "), sum = " << td1 + td2 + td3
@@ -2412,7 +2353,7 @@ int ComponentFieldMap::Coordinates3(double x, double y, double z, double& t1,
       }
     }
     // Debugging
-    if (m_debug) {
+    if (debug) {
       std::cout << m_className << "::Coordinates3:\n";
       std::cout << "    Difference vector:  (1, x, y)  = (" << diff[0] << ", "
                 << diff[1] << ", " << diff[2] << ").\n";
@@ -2426,7 +2367,7 @@ int ComponentFieldMap::Coordinates3(double x, double y, double z, double& t1,
     // Check for convergence.
     if (fabs(corr[0]) < 1.0e-5 && fabs(corr[1]) < 1.0e-5 &&
         fabs(corr[2]) < 1.0e-5) {
-      if (m_debug) {
+      if (debug) {
         std::cout << m_className << "::Coordinates3:\n";
         std::cout << "    Convergence reached.\n";
       }
@@ -2482,14 +2423,14 @@ int ComponentFieldMap::Coordinates3(double x, double y, double z, double& t1,
   t2 = td2;
   t3 = td3;
   t4 = 0;
-  if (m_debug) {
+  if (debug) {
     std::cout << m_className << "::Coordinates3:\n";
     std::cout << "    Convergence reached at (t1, t2, t3) = (" << t1 << ", "
               << t2 << ", " << t3 << ").\n";
   }
 
   // For debugging purposes, show position
-  if (m_debug) {
+  if (debug) {
     double xr = nodes[elements[imap].emap[0]].x * td1 * (2 * td1 - 1) +
                 nodes[elements[imap].emap[1]].x * td2 * (2 * td2 - 1) +
                 nodes[elements[imap].emap[2]].x * td3 * (2 * td3 - 1) +
@@ -2521,7 +2462,7 @@ int ComponentFieldMap::Coordinates4(double x, double y, double z, double& t1,
                                     double jac[4][4], double& det, int imap) {
 
   // Debugging
-  if (m_debug) {
+  if (debug) {
     std::cout << m_className << "::Coordinates4:\n";
     std::cout << "   Point (" << x << ", " << y << ", " << z << ")\n";
   }
@@ -2572,7 +2513,7 @@ int ComponentFieldMap::Coordinates4(double x, double y, double z, double& t1,
   // Check that the determinant is non-negative
   // (this can happen if the point is out of range).
   if (det < 0) {
-    if (m_debug) {
+    if (debug) {
       std::cerr << m_className << "::Coordinates4:\n";
       std::cerr << "    No solution found for isoparametric coordinates\n";
       std::cerr << "    in element " << imap << " because the determinant "
@@ -2744,13 +2685,13 @@ int ComponentFieldMap::Coordinates4(double x, double y, double z, double& t1,
     }
     t2 = -1 + 2 * ((x - xt1) * (xt2 - xt1) + (y - yt1) * (yt2 - yt1)) / dn;
   }
-  if (m_debug) {
+  if (debug) {
     std::cout << m_className << "::Coordinates4:\n";
     std::cout << "    Isoparametric (u, v):   (" << t1 << ", " << t2 << ").\n";
   }
 
   // Re-compute the (x,y,z) position for this coordinate.
-  if (m_debug) {
+  if (debug) {
     double xr = nodes[elements[imap].emap[0]].x * (1 - t1) * (1 - t2) / 4 +
                 nodes[elements[imap].emap[1]].x * (1 + t1) * (1 - t2) / 4 +
                 nodes[elements[imap].emap[2]].x * (1 + t1) * (1 + t2) / 4 +
@@ -2782,7 +2723,7 @@ int ComponentFieldMap::Coordinates5(double x, double y, double z, double& t1,
                                     double jac[4][4], double& det, int imap) {
 
   // Debugging
-  if (m_debug) {
+  if (debug) {
     std::cout << m_className << "::Coordinates5:\n";
     std::cout << "   Point (" << x << ", " << y << ", " << z << ")\n";
   }
@@ -2806,7 +2747,7 @@ int ComponentFieldMap::Coordinates5(double x, double y, double z, double& t1,
   // Make a first order approximation.
   int rc = Coordinates4(x, y, z, t1, t2, t3, t4, jac, det, imap);
   if (rc > 0) {
-    if (m_debug) {
+    if (debug) {
       std::cout << m_className << "::Coordinates5:\n";
       std::cout << "    Failure to obtain linear estimate of isoparametric "
                    "coordinates\n";
@@ -2817,7 +2758,7 @@ int ComponentFieldMap::Coordinates5(double x, double y, double z, double& t1,
 
   // Check whether the point is far outside.
   if (t1 < -(1 + f) || t1 > (1 + f) || t2 < -(1 + f) || t2 > (1 + f)) {
-    if (m_debug) {
+    if (debug) {
       std::cout << m_className << "::Coordinates5:\n";
       std::cout << "    Point far outside, (t1,t2) = (" << t1 << ", " << t2
                 << ").\n";
@@ -2827,7 +2768,7 @@ int ComponentFieldMap::Coordinates5(double x, double y, double z, double& t1,
 
   // Start iteration
   double td1 = t1, td2 = t2;
-  if (m_debug) {
+  if (debug) {
     std::cout << m_className << "::Coordinates5:\n";
     std::cout << "    Iteration starts at (t1,t2) = (" << td1 << ", " << td2
               << ").\n";
@@ -2836,7 +2777,7 @@ int ComponentFieldMap::Coordinates5(double x, double y, double z, double& t1,
   bool converged = false;
   double diff[2], corr[2];
   for (int iter = 0; iter < 10; iter++) {
-    if (m_debug) {
+    if (debug) {
       std::cout << m_className << "::Coordinates5:\n";
       std::cout << "    Iteration " << iter << ":     (t1, t2) = (" << td1
                 << ", " << td2 << ").\n";
@@ -2887,7 +2828,7 @@ int ComponentFieldMap::Coordinates5(double x, double y, double z, double& t1,
       }
     }
     // Debugging
-    if (m_debug) {
+    if (debug) {
       std::cout << m_className << "::Coordinates5:\n";
       std::cout << "    Difference vector: (x, y)   = (" << diff[0] << ", "
                 << diff[1] << ").\n";
@@ -2899,7 +2840,7 @@ int ComponentFieldMap::Coordinates5(double x, double y, double z, double& t1,
     td2 += corr[1];
     // Check for convergence.
     if (fabs(corr[0]) < 1.0e-5 && fabs(corr[1]) < 1.0e-5) {
-      if (m_debug) {
+      if (debug) {
         std::cout << m_className << "::Coordinates5:\n";
         std::cout << "    Convergence reached.\n";
       }
@@ -3015,14 +2956,14 @@ int ComponentFieldMap::Coordinates5(double x, double y, double z, double& t1,
   t2 = td2;
   t3 = 0;
   t4 = 0;
-  if (m_debug) {
+  if (debug) {
     std::cout << m_className << "::Coordinates5:\n";
     std::cout << "    Convergence reached at (t1, t2) = (" << t1 << ", " << t2
               << ").\n";
   }
 
   // For debugging purposes, show position.
-  if (m_debug) {
+  if (debug) {
     double xr =
         nodes[elements[imap].emap[0]].x *
             (-(1 - t1) * (1 - t2) * (1 + t1 + t2)) / 4 +
@@ -3065,7 +3006,7 @@ int ComponentFieldMap::Coordinates12(double x, double y, double z, double& t1,
                                      double& t2, double& t3, double& t4,
                                      int imap) {
 
-  if (m_debug) {
+  if (debug) {
     std::cout << m_className << "::Coordinates12:\n";
     std::cout << "   Point (" << x << ", " << y << ", " << z << ") for element "
               << imap << "\n";
@@ -3277,14 +3218,14 @@ int ComponentFieldMap::Coordinates12(double x, double y, double z, double& t1,
                   nodes[elements[imap].emap[0]].y)));
 
   // Result
-  if (m_debug) {
+  if (debug) {
     std::cout << m_className << "::Coordinates12:\n";
     std::cout << "    Tetrahedral coordinates (t, u, v, w) = (" << t1 << ", "
               << t2 << ", " << t3 << ", " << t4
               << ") sum = " << t1 + t2 + t3 + t4 << ".\n";
   }
   // Re-compute the (x,y,z) position for this coordinate.
-  if (m_debug) {
+  if (debug) {
     double xr = nodes[elements[imap].emap[0]].x * t1 +
                 nodes[elements[imap].emap[1]].x * t2 +
                 nodes[elements[imap].emap[2]].x * t3 +
@@ -3317,7 +3258,7 @@ int ComponentFieldMap::Coordinates13(double x, double y, double z, double& t1,
                                      double& t2, double& t3, double& t4,
                                      double jac[4][4], double& det, int imap) {
 
-  if (m_debug) {
+  if (debug) {
     std::cout << m_className << "::Coordinates13:\n";
     std::cout << "   Point (" << x << ", " << y << ", " << z << ")\n";
   }
@@ -3334,7 +3275,7 @@ int ComponentFieldMap::Coordinates13(double x, double y, double z, double& t1,
   // Make a first order approximation.
   int rc = Coordinates12(x, y, z, t1, t2, t3, t4, imap);
   if (rc > 0) {
-    if (m_debug) {
+    if (debug) {
       std::cout << m_className << "::Coordinates13:\n";
       std::cout << "    Failure to obtain linear estimate of isoparametric "
                    "coordinates\n";
@@ -3344,7 +3285,7 @@ int ComponentFieldMap::Coordinates13(double x, double y, double z, double& t1,
   }
   if (t1 < -f || t2 < -f || t3 < -f || t4 < -f || t1 > 1 + f || t2 > 1 + f ||
       t3 > 1 + f || t4 > 1 + f) {
-    if (m_debug) {
+    if (debug) {
       std::cout << m_className << "::Coordinates13:\n";
       std::cout << "    Linear isoparametric coordinates more than\n";
       std::cout << "    f (" << f << ") out of range in element " << imap
@@ -3356,7 +3297,7 @@ int ComponentFieldMap::Coordinates13(double x, double y, double z, double& t1,
 
   // Start iteration.
   double td1 = t1, td2 = t2, td3 = t3, td4 = t4;
-  if (m_debug) {
+  if (debug) {
     std::cout << m_className << "::Coordinates13:\n";
     std::cout << "    Iteration starts at (t1,t2,t3,t4) = (" << td1 << ", "
               << td2 << ", " << td3 << ", " << td4 << ").\n";
@@ -3365,7 +3306,7 @@ int ComponentFieldMap::Coordinates13(double x, double y, double z, double& t1,
   bool converged = false;
   double diff[4], corr[4];
   for (int iter = 0; iter < 10; iter++) {
-    if (m_debug) {
+    if (debug) {
       std::cout << m_className << "::Coordinates13:\n";
       std::cout << "    Iteration " << iter << ":      (t1,t2,t3,t4) = (" << td1
                 << ", " << td2 << ", " << td3 << ", " << td4 << ").\n";
@@ -3420,7 +3361,7 @@ int ComponentFieldMap::Coordinates13(double x, double y, double z, double& t1,
     }
 
     // Debugging
-    if (m_debug) {
+    if (debug) {
       std::cout << m_className << "::Coordinates13:\n";
       std::cout << "    Difference vector:  (1, x, y, z)  = (" << diff[0]
                 << ", " << diff[1] << ", " << diff[2] << ", " << diff[3]
@@ -3439,7 +3380,7 @@ int ComponentFieldMap::Coordinates13(double x, double y, double z, double& t1,
     // Check for convergence.
     if (fabs(corr[0]) < 1.0e-5 && fabs(corr[1]) < 1.0e-5 &&
         fabs(corr[2]) < 1.0e-5 && fabs(corr[3]) < 1.0e-5) {
-      if (m_debug) {
+      if (debug) {
         std::cout << m_className << "::Coordinates13:\n";
         std::cout << "    Convergence reached.\n";
       }
@@ -3529,14 +3470,14 @@ int ComponentFieldMap::Coordinates13(double x, double y, double z, double& t1,
   t2 = td2;
   t3 = td3;
   t4 = td4;
-  if (m_debug) {
+  if (debug) {
     std::cout << m_className << "::Coordinates13:\n";
     std::cout << "    Convergence reached at (t1, t2, t3, t4) = (" << t1 << ", "
               << t2 << ", " << t3 << ", " << t4 << ").\n";
   }
 
   // For debugging purposes, show position.
-  if (m_debug) {
+  if (debug) {
     // Re-compute the (x,y,z) position for this coordinate.
     double xr = nodes[elements[imap].emap[0]].x * td1 * (2 * td1 - 1) +
                 nodes[elements[imap].emap[1]].x * td2 * (2 * td2 - 1) +
@@ -3622,7 +3563,7 @@ int ComponentFieldMap::CoordinatesCube(double x, double y, double z, double& t1,
            (nodes[elements[imap].emap[7]].z - nodes[elements[imap].emap[3]].z) -
        1;
   // Re-compute the (x,y,z) position for this coordinate.
-  if (m_debug) {
+  if (debug) {
     double n[8];
     n[0] = 1. / 8 * (1 - t1) * (1 - t2) * (1 - t3);
     n[1] = 1. / 8 * (1 + t1) * (1 - t2) * (1 - t3);
@@ -3663,41 +3604,41 @@ int ComponentFieldMap::CoordinatesCube(double x, double y, double z, double& t1,
 void ComponentFieldMap::UpdatePeriodicityCommon() {
 
   // Check the required data is available.
-  if (!m_ready) {
+  if (!ready) {
     std::cerr << m_className << "::UpdatePeriodicityCommon:\n";
     std::cerr << "    No valid field map available.\n";
     return;
   }
 
   // No regular and mirror periodicity at the same time.
-  if (m_xPeriodic && m_xMirrorPeriodic) {
+  if (xPeriodic && xMirrorPeriodic) {
     std::cerr << m_className << "::UpdatePeriodicityCommon:\n";
     std::cerr << "    Both simple and mirror periodicity\n";
     std::cerr << "    along x requested; reset.\n";
-    m_xPeriodic = false;
-    m_xMirrorPeriodic = false;
+    xPeriodic = false;
+    xMirrorPeriodic = false;
     warning = true;
   }
-  if (m_yPeriodic && m_yMirrorPeriodic) {
+  if (yPeriodic && yMirrorPeriodic) {
     std::cerr << m_className << "::UpdatePeriodicityCommon:\n";
     std::cerr << "    Both simple and mirror periodicity\n";
     std::cerr << "    along y requested; reset.\n";
-    m_yPeriodic = false;
-    m_yMirrorPeriodic = false;
+    yPeriodic = false;
+    yMirrorPeriodic = false;
     warning = true;
   }
-  if (m_zPeriodic && m_zMirrorPeriodic) {
+  if (zPeriodic && zMirrorPeriodic) {
     std::cerr << m_className << "::UpdatePeriodicityCommon:\n";
     std::cerr << "    Both simple and mirror periodicity\n";
     std::cerr << "    along z requested; reset.\n";
-    m_zPeriodic = false;
-    m_zMirrorPeriodic = false;
+    zPeriodic = false;
+    zMirrorPeriodic = false;
     warning = true;
   }
 
   // In case of axial periodicity,
   // the range must be an integral part of 2 pi.
-  if (m_xAxiallyPeriodic) {
+  if (xAxiallyPeriodic) {
     if (mapxamin >= mapxamax) {
       mapnxa = 0;
     } else {
@@ -3707,12 +3648,12 @@ void ComponentFieldMap::UpdatePeriodicityCommon() {
       std::cerr << m_className << "::UpdatePeriodicityCommon:\n";
       std::cerr << "    X-axial symmetry has been requested but the map\n";
       std::cerr << "    does not cover an integral fraction of 2 pi; reset.\n";
-      m_xAxiallyPeriodic = false;
+      xAxiallyPeriodic = false;
       warning = true;
     }
   }
 
-  if (m_yAxiallyPeriodic) {
+  if (yAxiallyPeriodic) {
     if (mapyamin >= mapyamax) {
       mapnya = 0;
     } else {
@@ -3722,12 +3663,12 @@ void ComponentFieldMap::UpdatePeriodicityCommon() {
       std::cerr << m_className << "::UpdatePeriodicityCommon:\n";
       std::cerr << "    Y-axial symmetry has been requested but the map\n";
       std::cerr << "    does not cover an integral fraction of 2 pi; reset.\n";
-      m_yAxiallyPeriodic = false;
+      yAxiallyPeriodic = false;
       warning = true;
     }
   }
 
-  if (m_zAxiallyPeriodic) {
+  if (zAxiallyPeriodic) {
     if (mapzamin >= mapzamax) {
       mapnza = 0;
     } else {
@@ -3737,47 +3678,47 @@ void ComponentFieldMap::UpdatePeriodicityCommon() {
       std::cerr << m_className << "::UpdatePeriodicityCommon:\n";
       std::cerr << "    Z-axial symmetry has been requested but the map\n";
       std::cerr << "    does not cover an integral fraction of 2 pi; reset.\n";
-      m_zAxiallyPeriodic = false;
+      zAxiallyPeriodic = false;
       warning = true;
     }
   }
 
   // Not more than 1 rotational symmetry
-  if ((m_xRotationSymmetry && m_yRotationSymmetry) ||
-      (m_xRotationSymmetry && m_zRotationSymmetry) ||
-      (m_yRotationSymmetry && m_zRotationSymmetry)) {
+  if ((xRotationSymmetry && yRotationSymmetry) ||
+      (xRotationSymmetry && zRotationSymmetry) ||
+      (yRotationSymmetry && zRotationSymmetry)) {
     std::cerr << m_className << "::UpdatePeriodicityCommon:\n";
     std::cerr << "    Only 1 rotational symmetry allowed; reset.\n";
-    m_xRotationSymmetry = false;
-    m_yRotationSymmetry = false;
-    m_zRotationSymmetry = false;
+    xRotationSymmetry = false;
+    yRotationSymmetry = false;
+    zRotationSymmetry = false;
     warning = true;
   }
 
   // No rotational symmetry as well as axial periodicity
-  if ((m_xRotationSymmetry || m_yRotationSymmetry || m_zRotationSymmetry) &&
-      (m_xAxiallyPeriodic || m_yAxiallyPeriodic || m_zAxiallyPeriodic)) {
+  if ((xRotationSymmetry || yRotationSymmetry || zRotationSymmetry) &&
+      (xAxiallyPeriodic || yAxiallyPeriodic || zAxiallyPeriodic)) {
     std::cerr << m_className << "::UpdatePeriodicityCommon:\n";
     std::cerr << "    Not allowed to combine rotational symmetry\n";
     std::cerr << "    and axial periodicity; reset.\n";
-    m_xAxiallyPeriodic = false;
-    m_yAxiallyPeriodic = false;
-    m_zAxiallyPeriodic = false;
-    m_xRotationSymmetry = false;
-    m_yRotationSymmetry = false;
-    m_zRotationSymmetry = false;
+    xAxiallyPeriodic = false;
+    yAxiallyPeriodic = false;
+    zAxiallyPeriodic = false;
+    xRotationSymmetry = false;
+    yRotationSymmetry = false;
+    zRotationSymmetry = false;
     warning = true;
   }
 
   // In case of rotational symmetry, the x-range should not straddle 0.
-  if (m_xRotationSymmetry || m_yRotationSymmetry || m_zRotationSymmetry) {
+  if (xRotationSymmetry || yRotationSymmetry || zRotationSymmetry) {
     if (mapxmin * mapxmax < 0) {
       std::cerr << m_className << "::UpdatePeriodicityCommon:\n";
       std::cerr << "    Rotational symmetry requested, \n";
       std::cerr << "    but x-range straddles 0; reset.\n";
-      m_xRotationSymmetry = false;
-      m_yRotationSymmetry = false;
-      m_zRotationSymmetry = false;
+      xRotationSymmetry = false;
+      yRotationSymmetry = false;
+      zRotationSymmetry = false;
       warning = true;
     }
   }
@@ -3792,21 +3733,21 @@ void ComponentFieldMap::UpdatePeriodicityCommon() {
   cellsx = fabs(mapxmax - mapxmin);
   cellsy = fabs(mapymax - mapymin);
   cellsz = fabs(mapzmax - mapzmin);
-  if (m_xRotationSymmetry) {
+  if (xRotationSymmetry) {
     xMinBoundingBox = mapymin;
     xMaxBoundingBox = mapymax;
     yMinBoundingBox = -std::max(fabs(mapxmin), fabs(mapxmax));
     yMaxBoundingBox = +std::max(fabs(mapxmin), fabs(mapxmax));
     zMinBoundingBox = -std::max(fabs(mapxmin), fabs(mapxmax));
     zMaxBoundingBox = +std::max(fabs(mapxmin), fabs(mapxmax));
-  } else if (m_yRotationSymmetry) {
+  } else if (yRotationSymmetry) {
     xMinBoundingBox = -std::max(fabs(mapxmin), fabs(mapxmax));
     xMaxBoundingBox = +std::max(fabs(mapxmin), fabs(mapxmax));
     yMinBoundingBox = mapymin;
     yMaxBoundingBox = mapymax;
     zMinBoundingBox = -std::max(fabs(mapxmin), fabs(mapxmax));
     zMaxBoundingBox = +std::max(fabs(mapxmin), fabs(mapxmax));
-  } else if (m_zRotationSymmetry) {
+  } else if (zRotationSymmetry) {
     xMinBoundingBox = -std::max(fabs(mapxmin), fabs(mapxmax));
     xMaxBoundingBox = +std::max(fabs(mapxmin), fabs(mapxmax));
     yMinBoundingBox = -std::max(fabs(mapxmin), fabs(mapxmax));
@@ -3815,7 +3756,7 @@ void ComponentFieldMap::UpdatePeriodicityCommon() {
     zMaxBoundingBox = mapymax;
   }
 
-  if (m_xAxiallyPeriodic) {
+  if (xAxiallyPeriodic) {
     yMinBoundingBox = -std::max(std::max(fabs(mapymin), fabs(mapymax)),
                                 std::max(fabs(mapzmin), fabs(mapzmax)));
     yMaxBoundingBox = +std::max(std::max(fabs(mapymin), fabs(mapymax)),
@@ -3824,7 +3765,7 @@ void ComponentFieldMap::UpdatePeriodicityCommon() {
                                 std::max(fabs(mapzmin), fabs(mapzmax)));
     zMaxBoundingBox = +std::max(std::max(fabs(mapymin), fabs(mapymax)),
                                 std::max(fabs(mapzmin), fabs(mapzmax)));
-  } else if (m_yAxiallyPeriodic) {
+  } else if (yAxiallyPeriodic) {
     xMinBoundingBox = -std::max(std::max(fabs(mapxmin), fabs(mapxmax)),
                                 std::max(fabs(mapzmin), fabs(mapzmax)));
     xMaxBoundingBox = +std::max(std::max(fabs(mapxmin), fabs(mapxmax)),
@@ -3833,7 +3774,7 @@ void ComponentFieldMap::UpdatePeriodicityCommon() {
                                 std::max(fabs(mapzmin), fabs(mapzmax)));
     zMaxBoundingBox = +std::max(std::max(fabs(mapxmin), fabs(mapxmax)),
                                 std::max(fabs(mapzmin), fabs(mapzmax)));
-  } else if (m_zAxiallyPeriodic) {
+  } else if (zAxiallyPeriodic) {
     xMinBoundingBox = -std::max(std::max(fabs(mapxmin), fabs(mapxmax)),
                                 std::max(fabs(mapymin), fabs(mapymax)));
     xMaxBoundingBox = +std::max(std::max(fabs(mapxmin), fabs(mapxmax)),
@@ -3844,49 +3785,49 @@ void ComponentFieldMap::UpdatePeriodicityCommon() {
                                 std::max(fabs(mapymin), fabs(mapymax)));
   }
 
-  if (m_xPeriodic || m_xMirrorPeriodic) {
+  if (xPeriodic || xMirrorPeriodic) {
     xMinBoundingBox = -INFINITY;
     xMaxBoundingBox = +INFINITY;
   }
-  if (m_yPeriodic || m_yMirrorPeriodic) {
+  if (yPeriodic || yMirrorPeriodic) {
     yMinBoundingBox = -INFINITY;
     yMaxBoundingBox = +INFINITY;
   }
-  if (m_zPeriodic || m_zMirrorPeriodic) {
+  if (zPeriodic || zMirrorPeriodic) {
     zMinBoundingBox = -INFINITY;
     zMaxBoundingBox = +INFINITY;
   }
 
   // Display the range if requested.
-  if (m_debug) PrintRange();
+  if (debug) PrintRange();
 }
 
 void ComponentFieldMap::UpdatePeriodicity2d() {
 
   // Check the required data is available.
-  if (!m_ready) {
+  if (!ready) {
     std::cerr << m_className << "::UpdatePeriodicity2d:\n";
     std::cerr << "    No valid field map available.\n";
     return;
   }
 
   // No z-periodicity in 2d
-  if (m_zPeriodic || m_zMirrorPeriodic) {
+  if (zPeriodic || zMirrorPeriodic) {
     std::cerr << m_className << "::UpdatePeriodicity2d:\n";
     std::cerr << "    Simple or mirror periodicity along z\n";
     std::cerr << "    requested for a 2d map; reset.\n";
-    m_zPeriodic = false;
-    m_zMirrorPeriodic = false;
+    zPeriodic = false;
+    zMirrorPeriodic = false;
     warning = true;
   }
 
   // Only z-axial periodicity in 2d maps
-  if (m_xAxiallyPeriodic || m_yAxiallyPeriodic) {
+  if (xAxiallyPeriodic || yAxiallyPeriodic) {
     std::cerr << m_className << "::UpdatePeriodicity2d:\n";
     std::cerr << "    Axial symmetry has been requested \n";
     std::cerr << "    around x or y for a 2D map; reset.\n";
-    m_xAxiallyPeriodic = false;
-    m_yAxiallyPeriodic = false;
+    xAxiallyPeriodic = false;
+    yAxiallyPeriodic = false;
     warning = true;
   }
 }
@@ -3902,7 +3843,7 @@ void ComponentFieldMap::SetRange() {
   setangx = setangy = setangz = false;
 
   // Make sure the required data is available.
-  if (!m_ready || nNodes < 1) {
+  if (!ready || nNodes < 1) {
     std::cerr << m_className << "::SetRange:\n";
     std::cerr << "    Field map not yet set.\n";
     return;
@@ -4003,7 +3944,7 @@ void ComponentFieldMap::SetRange() {
   hasBoundingBox = true;
 
   // Display the range if requested.
-  if (m_debug) PrintRange();
+  if (debug) PrintRange();
 }
 
 void ComponentFieldMap::PrintRange() {
@@ -4018,54 +3959,51 @@ void ComponentFieldMap::PrintRange() {
   std::cout << "        Periodicities\n";
 
   std::cout << "            x:";
-  if (m_xPeriodic) {
+  if (xPeriodic) {
     std::cout << " simple with length " << cellsx << " cm";
   }
-  if (m_xMirrorPeriodic) {
+  if (xMirrorPeriodic) {
     std::cout << " mirror with length " << cellsx << " cm";
   }
-  if (m_xAxiallyPeriodic) {
+  if (xAxiallyPeriodic) {
     std::cout << " axial " << int(0.5 + mapnxa) << "-fold repetition";
   }
-  if (m_xRotationSymmetry) std::cout << " rotational symmetry";
-  if (!(m_xPeriodic || m_xMirrorPeriodic || m_xAxiallyPeriodic || 
-        m_xRotationSymmetry))
+  if (xRotationSymmetry) std::cout << " rotational symmetry";
+  if (!(xPeriodic || xMirrorPeriodic || xAxiallyPeriodic || xRotationSymmetry))
     std::cout << " none";
   std::cout << "\n";
 
   std::cout << "            y:";
-  if (m_yPeriodic) {
+  if (yPeriodic) {
     std::cout << " simple with length " << cellsy << " cm";
   }
-  if (m_yMirrorPeriodic) {
+  if (yMirrorPeriodic) {
     std::cout << " mirror with length " << cellsy << " cm";
   }
-  if (m_yAxiallyPeriodic) {
+  if (yAxiallyPeriodic) {
     std::cout << " axial " << int(0.5 + mapnya) << "-fold repetition";
   }
-  if (m_yRotationSymmetry) {
+  if (yRotationSymmetry) {
     std::cout << " rotational symmetry";
   }
-  if (!(m_yPeriodic || m_yMirrorPeriodic || m_yAxiallyPeriodic || 
-        m_yRotationSymmetry))
+  if (!(yPeriodic || yMirrorPeriodic || yAxiallyPeriodic || yRotationSymmetry))
     std::cout << " none";
   std::cout << "\n";
 
   std::cout << "            z:";
-  if (m_zPeriodic) {
+  if (zPeriodic) {
     std::cout << " simple with length " << cellsz << " cm";
   }
-  if (m_zMirrorPeriodic) {
+  if (zMirrorPeriodic) {
     std::cout << " mirror with length " << cellsz << " cm";
   }
-  if (m_zAxiallyPeriodic) {
+  if (zAxiallyPeriodic) {
     std::cout << " axial " << int(0.5 + mapnza) << "-fold repetition";
   }
-  if (m_zRotationSymmetry) {
+  if (zRotationSymmetry) {
     std::cout << " rotational symmetry";
   }
-  if (!(m_zPeriodic || m_zMirrorPeriodic || m_zAxiallyPeriodic || 
-        m_zRotationSymmetry))
+  if (!(zPeriodic || zMirrorPeriodic || zAxiallyPeriodic || zRotationSymmetry))
     std::cout << " none";
   std::cout << "\n";
 }
@@ -4084,7 +4022,7 @@ bool ComponentFieldMap::GetBoundingBox(double& xmin, double& ymin, double& zmin,
                                        double& xmax, double& ymax,
                                        double& zmax) {
 
-  if (!m_ready) return false;
+  if (!ready) return false;
 
   xmin = xMinBoundingBox;
   xmax = xMaxBoundingBox;
@@ -4106,10 +4044,10 @@ void ComponentFieldMap::MapCoordinates(double& xpos, double& ypos, double& zpos,
   // If chamber is periodic, reduce to the cell volume.
   xmirrored = false;
   double auxr, auxphi;
-  if (m_xPeriodic) {
+  if (xPeriodic) {
     xpos = mapxmin + fmod(xpos - mapxmin, mapxmax - mapxmin);
     if (xpos < mapxmin) xpos += mapxmax - mapxmin;
-  } else if (m_xMirrorPeriodic) {
+  } else if (xMirrorPeriodic) {
     double xnew = mapxmin + fmod(xpos - mapxmin, mapxmax - mapxmin);
     if (xnew < mapxmin) xnew += mapxmax - mapxmin;
     int nx = int(floor(0.5 + (xnew - xpos) / (mapxmax - mapxmin)));
@@ -4119,7 +4057,7 @@ void ComponentFieldMap::MapCoordinates(double& xpos, double& ypos, double& zpos,
     }
     xpos = xnew;
   }
-  if (m_xAxiallyPeriodic && (zpos != 0 || ypos != 0)) {
+  if (xAxiallyPeriodic && (zpos != 0 || ypos != 0)) {
     auxr = sqrt(zpos * zpos + ypos * ypos);
     auxphi = atan2(zpos, ypos);
     rotation = (mapxamax - mapxamin) *
@@ -4135,10 +4073,10 @@ void ComponentFieldMap::MapCoordinates(double& xpos, double& ypos, double& zpos,
   }
 
   ymirrored = false;
-  if (m_yPeriodic) {
+  if (yPeriodic) {
     ypos = mapymin + fmod(ypos - mapymin, mapymax - mapymin);
     if (ypos < mapymin) ypos += mapymax - mapymin;
-  } else if (m_yMirrorPeriodic) {
+  } else if (yMirrorPeriodic) {
     double ynew = mapymin + fmod(ypos - mapymin, mapymax - mapymin);
     if (ynew < mapymin) ynew += mapymax - mapymin;
     int ny = int(floor(0.5 + (ynew - ypos) / (mapymax - mapymin)));
@@ -4148,7 +4086,7 @@ void ComponentFieldMap::MapCoordinates(double& xpos, double& ypos, double& zpos,
     }
     ypos = ynew;
   }
-  if (m_yAxiallyPeriodic && (xpos != 0 || zpos != 0)) {
+  if (yAxiallyPeriodic && (xpos != 0 || zpos != 0)) {
     auxr = sqrt(xpos * xpos + zpos * zpos);
     auxphi = atan2(xpos, zpos);
     rotation = (mapyamax - mapyamin) *
@@ -4164,10 +4102,10 @@ void ComponentFieldMap::MapCoordinates(double& xpos, double& ypos, double& zpos,
   }
 
   zmirrored = false;
-  if (m_zPeriodic) {
+  if (zPeriodic) {
     zpos = mapzmin + fmod(zpos - mapzmin, mapzmax - mapzmin);
     if (zpos < mapzmin) zpos += mapzmax - mapzmin;
-  } else if (m_zMirrorPeriodic) {
+  } else if (zMirrorPeriodic) {
     double znew = mapzmin + fmod(zpos - mapzmin, mapzmax - mapzmin);
     if (znew < mapzmin) znew += mapzmax - mapzmin;
     int nz = int(floor(0.5 + (znew - zpos) / (mapzmax - mapzmin)));
@@ -4177,7 +4115,7 @@ void ComponentFieldMap::MapCoordinates(double& xpos, double& ypos, double& zpos,
     }
     zpos = znew;
   }
-  if (m_zAxiallyPeriodic && (ypos != 0 || xpos != 0)) {
+  if (zAxiallyPeriodic && (ypos != 0 || xpos != 0)) {
     auxr = sqrt(ypos * ypos + xpos * xpos);
     auxphi = atan2(ypos, xpos);
     rotation = (mapzamax - mapzamin) *
@@ -4195,18 +4133,18 @@ void ComponentFieldMap::MapCoordinates(double& xpos, double& ypos, double& zpos,
   // If we have a rotationally symmetric field map, store coordinates.
   rcoordinate = 0;
   double zcoordinate = 0;
-  if (m_xRotationSymmetry) {
+  if (xRotationSymmetry) {
     rcoordinate = sqrt(ypos * ypos + zpos * zpos);
     zcoordinate = xpos;
-  } else if (m_yRotationSymmetry) {
+  } else if (yRotationSymmetry) {
     rcoordinate = sqrt(xpos * xpos + zpos * zpos);
     zcoordinate = ypos;
-  } else if (m_zRotationSymmetry) {
+  } else if (zRotationSymmetry) {
     rcoordinate = sqrt(xpos * xpos + ypos * ypos);
     zcoordinate = zpos;
   }
 
-  if (m_xRotationSymmetry || m_yRotationSymmetry || m_zRotationSymmetry) {
+  if (xRotationSymmetry || yRotationSymmetry || zRotationSymmetry) {
     xpos = rcoordinate;
     ypos = zcoordinate;
     zpos = 0;
@@ -4226,21 +4164,21 @@ void ComponentFieldMap::UnmapFields(double& ex, double& ey, double& ez,
 
   // Rotate the field.
   double er, theta;
-  if (m_xAxiallyPeriodic) {
+  if (xAxiallyPeriodic) {
     er = sqrt(ey * ey + ez * ez);
     theta = atan2(ez, ey);
     theta += rotation;
     ey = er * cos(theta);
     ez = er * sin(theta);
   }
-  if (m_yAxiallyPeriodic) {
+  if (yAxiallyPeriodic) {
     er = sqrt(ez * ez + ex * ex);
     theta = atan2(ex, ez);
     theta += rotation;
     ez = er * cos(theta);
     ex = er * sin(theta);
   }
-  if (m_zAxiallyPeriodic) {
+  if (zAxiallyPeriodic) {
     er = sqrt(ex * ex + ey * ey);
     theta = atan2(ey, ex);
     theta += rotation;
@@ -4254,7 +4192,7 @@ void ComponentFieldMap::UnmapFields(double& ex, double& ey, double& ez,
   eaxis = ey;
 
   // Rotational symmetry
-  if (m_xRotationSymmetry) {
+  if (xRotationSymmetry) {
     if (rcoordinate <= 0) {
       ex = eaxis;
       ey = 0;
@@ -4265,7 +4203,7 @@ void ComponentFieldMap::UnmapFields(double& ex, double& ey, double& ez,
       ez = er * zpos / rcoordinate;
     }
   }
-  if (m_yRotationSymmetry) {
+  if (yRotationSymmetry) {
     if (rcoordinate <= 0) {
       ex = 0;
       ey = eaxis;
@@ -4276,7 +4214,7 @@ void ComponentFieldMap::UnmapFields(double& ex, double& ey, double& ez,
       ez = er * zpos / rcoordinate;
     }
   }
-  if (m_zRotationSymmetry) {
+  if (zRotationSymmetry) {
     if (rcoordinate <= 0) {
       ex = 0;
       ey = 0;
@@ -4311,7 +4249,7 @@ double ComponentFieldMap::ReadDouble(char* token, double def, bool& error) {
 void ComponentFieldMap::CalculateElementBoundingBoxes(void) {
 
   // Do not proceed if not properly initialised.
-  if (!m_ready) {
+  if (!ready) {
     std::cerr << m_className << "::CalculateElementBoundingBoxes:\n";
     std::cerr << "    Field map not yet initialised.\n";
     std::cerr << "    Bounding boxes of elements cannot be computed.\n";
@@ -4341,73 +4279,4 @@ void ComponentFieldMap::CalculateElementBoundingBoxes(void) {
         std::max(nodes[elem.emap[2]].z, nodes[elem.emap[3]].z));
   }
 }
-
-bool ComponentFieldMap::InitializeTetrahedralTree(void) {
-
-  // Do not proceed if not properly initialised.
-  if (!m_ready) {
-    std::cerr << m_className << "::InitializeTetrahedralTree:\n";
-    std::cerr << "    Field map not yet initialised.\n";
-    std::cerr << "    Tetrahedral tree cannot be initialized.\n";
-    return false;
-  }
-
-  std::cerr << m_className << "::InitializeTetrahedralTree:\n";
-  std::cerr << "    About to initialize the tetrahedral tree.\n";
-
-  // check if the caching has not been done before
-  if(!cacheElemBoundingBoxes) {
-    CalculateElementBoundingBoxes();
-  }
-
-  // determine the bounding box
-  double xmin=0., ymin=0., zmin=0., xmax=0., ymax=0., zmax=0.;
-  for(unsigned int i=0; i<nodes.size(); i++) {
-    const node& n = nodes[i];
-
-    // adjust the bounding box
-    if(n.x <= xmin) xmin = n.x;
-    if(n.x > xmax) xmax = n.x;
-    if(n.y <= ymin) ymin = n.y;
-    if(n.y > ymax) ymax = n.y;
-    if(n.z <= zmin) zmin = n.z;
-    if(n.z > zmax) zmax = n.z;
-  }
-
-  std::cout << "::Bounding box:\n ";
-	std::cout << std::scientific << "\tx: " << xmin << " -> " << xmax << std::endl;
-	std::cout << std::scientific << "\ty: " << ymin << " -> " << ymax << std::endl;
-	std::cout << std::scientific << "\tz: " << zmin << " -> " << zmax << std::endl;
-
-  tetTree = new TetrahedralTree(Vec3(xmin+(xmax-xmin)/2,ymin+(ymax-ymin)/2, zmin+(zmax-zmin)/2), Vec3((xmax-xmin)/2,(ymax-ymin)/2,(zmax-zmin)/2));
-
-  std::cerr << "Tree instantiated.\n";
-
-  // insert all mesh nodes in the tree
-  for(unsigned int i=0; i<nodes.size(); i++) {
-    const node& n = nodes[i];
-    //std::cerr << i << std::endl;
-    tetTree->InsertMeshNode(Vec3(n.x, n.y, n.z), i);
-  }
-
-  std::cerr << m_className << "::InitializeTetrahedralTree:\n";
-  std::cerr << "    Tetrahedral tree nodes initialized successfully.\n";
-
-  // insert all mesh elements (tetrahedrons) in the tree
-  for(unsigned int i=0; i<elements.size(); i++)
-  {
-    element& e = elements[i];
-      
-    double bb[6] = {e.xmin, e.ymin, e.zmin, e.xmax, e.ymax, e.zmax};
-    tetTree->InsertTetrahedron(bb, i);
-  }
-
-  std::cerr << m_className << "::InitializeTetrahedralTree:\n";
-  std::cerr << "    Tetrahedral tree initialized successfully.\n";
-
-  isTreeInitialized = true;
-  return true;
 }
-
-}
-

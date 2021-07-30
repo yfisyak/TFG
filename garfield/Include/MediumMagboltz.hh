@@ -208,9 +208,9 @@ class MediumMagboltz : public MediumGas {
 
   // Penning transfer
   // Penning transfer probability (by level)
-  double m_rPenning[nMaxLevels];
+  double rPenning[nMaxLevels];
   // Mean distance of Penning ionisation (by level)
-  double m_lambdaPenning[nMaxLevels];
+  double lambdaPenning[nMaxLevels];
   // Number of Penning ionisations
   int nPenning;
 

@@ -484,7 +484,8 @@ bool AvalancheMC::DriftLine(const double x0, const double y0,
     vt = sqrt(vx * vx + vy * vy);
     if (vt < Small) {
       phi = 0.;
-      theta = vz < 0. ? -HalfPi : HalfPi;
+      theta = HalfPi;
+      if (vz < 0.) theta = -theta;
     } else {
       phi = atan2(vy, vx);
       theta = atan2(vz, vt);

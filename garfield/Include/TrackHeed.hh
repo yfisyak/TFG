@@ -40,8 +40,7 @@ class TrackHeed : public Track {
                 const double dz0);
   bool GetCluster(double& xcls, double& ycls, double& zcls, double& tcls,
                   int& n, double& e, double& extra);
-  bool GetElectron(const unsigned int i, 
-                   double& x, double& y, double& z, double& t,
+  bool GetElectron(const int i, double& x, double& y, double& z, double& t,
                    double& e, double& dx, double& dy, double& dz);
 
   double GetClusterDensity();
@@ -65,14 +64,14 @@ class TrackHeed : public Track {
   void EnableMagneticField();
   void DisableMagneticField();
 
-  void EnableDeltaElectronTransport() { m_useDelta = true; }
-  void DisableDeltaElectronTransport() { m_useDelta = false; }
+  void EnableDeltaElectronTransport() { useDelta = true; }
+  void DisableDeltaElectronTransport() { useDelta = false; }
 
-  void EnablePhotonReabsorption() { m_usePhotonReabsorption = true; }
-  void DisablePhotonReabsorption() { m_usePhotonReabsorption = false; }
+  void EnablePhotonReabsorption() { usePhotonReabsorption = true; }
+  void DisablePhotonReabsorption() { usePhotonReabsorption = false; }
 
-  void EnablePhotoAbsorptionCrossSectionOutput() { m_usePacsOutput = true; }
-  void DisablePhotoAbsorptionCrossSectionOutput() { m_usePacsOutput = false; }
+  void EnablePhotoAbsorptionCrossSectionOutput() { usePacsOutput = true; }
+  void DisablePhotoAbsorptionCrossSectionOutput() { usePacsOutput = false; }
   void SetEnergyMesh(const double e0, const double e1, const int nsteps);
 
   // Define particle mass and charge (for exotic particles).
@@ -84,56 +83,57 @@ class TrackHeed : public Track {
   TrackHeed(const TrackHeed& heed);
   TrackHeed& operator=(const TrackHeed& heed);
 
-  bool m_ready;
-  bool m_hasActiveTrack;
+  bool ready;
+  bool hasActiveTrack;
 
-  double m_mediumDensity;
-  std::string m_mediumName;
+  double mediumDensity;
+  std::string mediumName;
 
-  bool m_usePhotonReabsorption;
-  bool m_usePacsOutput;
+  bool usePhotonReabsorption;
+  bool usePacsOutput;
 
-  bool m_useDelta;
+  bool useDelta;
+  int nDeltas;
   struct deltaElectron {
     double x, y, z, t;
     double e;
     double dx, dy, dz;
   };
-  std::vector<deltaElectron> m_deltaElectrons;
+  std::vector<deltaElectron> deltaElectrons;
 
   // Primary particle
-  Heed::HeedParticle* m_particle;
+  Heed::HeedParticle* particle;
 
   // Material properties
-  Heed::HeedMatterDef* m_matter;
-  Heed::GasDef* m_gas;
-  Heed::MatterDef* m_material;
+  Heed::HeedMatterDef* matter;
+  Heed::GasDef* gas;
+  Heed::MatterDef* material;
 
   // Photoabsorption cross-sections
   Heed::AtomPhotoAbsCS** m_atPacs;
   Heed::MolecPhotoAbsCS** m_molPacs;
 
   // Energy mesh
-  double m_emin, m_emax;
-  int m_nEnergyIntervals;
-  Heed::EnergyMesh* m_energyMesh;
+  double emin, emax;
+  int nEnergyIntervals;
+  Heed::EnergyMesh* energyMesh;
 
   // Cross-sections
-  Heed::EnTransfCS* m_transferCs;
-  Heed::ElElasticScat* m_elScat;
-  Heed::ElElasticScatLowSigma* m_lowSigma;
-  Heed::PairProd* m_pairProd;
-  Heed::HeedDeltaElectronCS* m_deltaCs;
+  Heed::EnTransfCS* transferCs;
+  Heed::ElElasticScat* elScat;
+  Heed::ElElasticScatLowSigma* lowSigma;
+  Heed::PairProd* pairProd;
+  Heed::HeedDeltaElectronCS* deltaCs;
 
-  HeedChamber* m_chamber;
+  HeedChamber* chamber;
   // Bounding box
-  double m_lX, m_lY, m_lZ;
-  double m_cX, m_cY, m_cZ;
+  double lX, lY, lZ;
+  double cX, cY, cZ;
 
   bool Setup(Medium* medium);
   bool SetupGas(Medium* medium);
   bool SetupMaterial(Medium* medium);
-  bool SetupDelta(const std::string& databasePath);
+  bool SetupDelta(const std::string databasePath);
 };
 }
 

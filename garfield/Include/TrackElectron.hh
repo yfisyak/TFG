@@ -31,13 +31,14 @@ class TrackElectron : public Track {
   double GetStoppingPower();
 
  private:
-  bool m_ready;
+  bool ready;
 
   // Particle coordinates and direction
-  double m_x, m_y, m_z, m_t;
-  double m_dx, m_dy, m_dz;
+  double x, y, z, t;
+  double dx, dy, dz;
 
   // Parameters in ionization cross-section
+  int nComponents;
   struct component {
     double fraction;
     // Dipole moment
@@ -55,21 +56,22 @@ class TrackElectron : public Track {
     // Relative cross-section
     double p;
   };
-  std::vector<component> m_components;
+  std::vector<component> components;
 
   // Secondary electrons
+  int nElectrons;
   struct electron {
     double x, y, z;
     double energy;
   };
-  std::vector<electron> m_electrons;
+  std::vector<electron> electrons;
 
   // Medium name
-  std::string m_mediumName;
+  std::string mediumName;
   // Atomic density
-  double m_mediumDensity;
+  double mediumDensity;
   // Mean free path
-  double m_mfp;
+  double mfp;
 
   bool SetupGas(Medium* gas);
   bool UpdateCrossSection();

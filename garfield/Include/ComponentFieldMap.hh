@@ -3,7 +3,6 @@
 
 #include "ComponentBase.hh"
 #include "TMatrixD.h"
-#include "TetrahedralTree.hh"
 
 namespace Garfield {
 
@@ -13,7 +12,7 @@ class ComponentFieldMap : public ComponentBase {
   // Constructor
   ComponentFieldMap();
   // Destructor
-  virtual ~ComponentFieldMap();
+  virtual ~ComponentFieldMap() {}
 
   // Ranges
   // Calculates x, y, z, V and angular ranges
@@ -35,21 +34,21 @@ class ComponentFieldMap : public ComponentBase {
   // List all currently defined materials
   void PrintMaterials();
   // Make into a drift medium
-  void DriftMedium(const unsigned int imat);
+  void DriftMedium(int imat);
   // Make into a non-drift medium
-  void NotDriftMedium(const unsigned int imat);
+  void NotDriftMedium(int imat);
   // Number of materials
-  unsigned int GetNumberOfMaterials() { return m_nMaterials; }
+  int GetNumberOfMaterials() { return nMaterials; }
   // Return permittivity
-  double GetPermittivity(const unsigned int imat);
+  double GetPermittivity(const int imat);
   // Return conductivity
-  double GetConductivity(const unsigned int imat);
+  double GetConductivity(const int imat);
   // Associate a material with a Medium class
-  void SetMedium(const unsigned int imat, Medium* medium);
+  void SetMedium(const int imat, Medium* medium);
   // Returns the medium for a material
-  Medium* GetMedium(const unsigned int i) const;
-  Medium* GetMedium(const double x, const double y, const double z) = 0;
-  unsigned int GetNumberOfMedia() { return m_nMaterials; }
+  Medium* GetMedium(const unsigned int& i) const;
+  Medium* GetMedium(const double& x, const double& y, const double& z) = 0;
+  int GetNumberOfMedia() { return nMaterials; }
 
   int GetNumberOfElements() const { return nElements; }
   bool GetElement(const int i, double& vol, double& dmin, double& dmax);
@@ -63,11 +62,11 @@ class ComponentFieldMap : public ComponentBase {
 
   virtual void WeightingField(const double x, const double y, const double z,
                               double& wx, double& wy, double& wz,
-                              const std::string& label) = 0;
+                              const std::string label) = 0;
 
   virtual double WeightingPotential(const double x, const double y,
                                     const double z,
-                                    const std::string& label) = 0;
+                                    const std::string label) = 0;
 
   // Options
   void EnableCheckMapIndices() {
@@ -77,10 +76,6 @@ class ComponentFieldMap : public ComponentBase {
   void DisableCheckMapIndices() { checkMultipleElement = false; }
   void EnableDeleteBackgroundElements() { deleteBackground = true; }
   void DisableDeleteBackgroundElements() { deleteBackground = false; }
-
-  // Enable/disable the usage of tetrahedral tree for searching the element in mesh
-  void EnableTetrahedralTreeForElementSearch() { useTetrahedralTreeForSearch = true; }
-  void DisableTetrahedralTreeForElementSearch() { useTetrahedralTreeForSearch = false; }
 
   friend class ViewFEMesh;
 
@@ -93,7 +88,7 @@ class ComponentFieldMap : public ComponentBase {
     // Nodes
     int emap[10];
     // Material
-    unsigned int matmap;
+    int matmap;
     bool degenerate;
     // Bounding box of the element
     double xmin, ymin, zmin, xmax, ymax, zmax;
@@ -116,7 +111,7 @@ class ComponentFieldMap : public ComponentBase {
   std::vector<node> nodes;
 
   // Materials
-  unsigned int m_nMaterials;
+  int nMaterials;
   struct material {
     // Permittivity
     double eps;
@@ -158,11 +153,6 @@ class ComponentFieldMap : public ComponentBase {
 
   // Warnings flag
   bool warning;
-
-  // Tetrahedral tree
-  TetrahedralTree* tetTree;
-  bool useTetrahedralTreeForSearch;
-  bool isTreeInitialized;
 
   // Reset the component
   void Reset() {};
@@ -239,9 +229,6 @@ class ComponentFieldMap : public ComponentBase {
 
   // Calculate the bounding boxes of all elements after initialization
   void CalculateElementBoundingBoxes(void);
-
-  // Initialize the tetrahedral tree
-  bool InitializeTetrahedralTree(void);
 };
 }
 

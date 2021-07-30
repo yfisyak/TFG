@@ -12,13 +12,11 @@
 #include "Sensor.hh"
 #include "TrackHeed.hh"
 #include "Plotting.hh"
-#include "Random.hh"
 
 using namespace Garfield;
 
 int main(int argc, char * argv[]) {
 
-  randomEngine.Seed(123456);
   TApplication app("app", &argc, argv);
   plottingEngine.SetDefaultStyle();
 
@@ -57,7 +55,7 @@ int main(int argc, char * argv[]) {
   track->SetParticle("pi");
   track->SetMomentum(120.e9);
 
-  const int nEvents = 10000;
+  const int nEvents = 100000;
   track->EnableDebugging();
   for (int i = 0; i < nEvents; ++i) {
     if (i == 1) track->DisableDebugging();

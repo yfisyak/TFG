@@ -217,12 +217,6 @@ $(OBJDIR)/ComponentVoxel.o: \
 	$(SRCDIR)/ComponentBase.cc $(INCDIR)/ComponentBase.hh
 	@echo $@
 	@$(CXX) $(CFLAGS) $< -o $@   
-$(OBJDIR)/ComponentUserMapBase.o: \
-	$(SRCDIR)/ComponentUserMapBase.cc $(INCDIR)/ComponentUserMapBase.hh \
-	$(SRCDIR)/ComponentBase.cc $(INCDIR)/ComponentBase.hh
-	@echo $@
-	@$(CXX) $(CFLAGS) $< -o $@    
-
 $(OBJDIR)/GeometrySimple.o: \
 	$(SRCDIR)/GeometrySimple.cc $(INCDIR)/GeometrySimple.hh
 	@echo $@
@@ -281,7 +275,6 @@ $(OBJDIR)/MediumGas.o: \
 $(OBJDIR)/MediumMagboltz.o: \
 	$(SRCDIR)/MediumMagboltz.cc $(INCDIR)/MediumMagboltz.hh \
 	$(SRCDIR)/Medium.cc $(INCDIR)/Medium.hh $(SRCDIR)/OpticalData.cc \
-	$(SRCDIR)/MediumGas.cc $(INCDIR)/MediumGas.hh \
 	$(INCDIR)/FundamentalConstants.hh $(INCDIR)/Random.hh
 	@echo $@
 	$(CXX) $(CFLAGS) $< -o $@
@@ -349,11 +342,6 @@ $(OBJDIR)/Sensor.o: \
 	$(INCDIR)/ComponentBase.hh $(INCDIR)/FundamentalConstants.hh
 	@echo $@
 	$(CXX) $(CFLAGS) $< -o $@
-
-$(OBJDIR)/TetrahedralTree.o: \
-	$(SRCDIR)/TetrahedralTree.cc $(INCDIR)/TetrahedralTree.hh
-	@echo $@
-	@$(CXX) $(CFLAGS) $< -o $@
 
 $(OBJDIR)/GarfieldDict.o: \
 	$(OBJDIR)/GarfieldDict.C

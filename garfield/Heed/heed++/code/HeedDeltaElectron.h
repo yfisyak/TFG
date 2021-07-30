@@ -11,17 +11,19 @@ through the geometry
 */
 
 namespace Heed {
-extern long last_particle_number;
+
+extern long last_particle_number;  // for debug print
+// Each particle is identified by particle_number.
+// It is assigned by current last_particle_number which is then incremented
+// This extern is also repeated in HeedParticle.h and HeedParticle_BGM.h.
 
 class HeedDeltaElectron : public eparticle {
  public:
   static int s_low_mult_scattering;
   static int s_high_mult_scattering;
 
+  //PassivePtr< EnTransfCS > encs;
   long particle_number;
-  long parent_particle_number;
-  // static long last_particle_number;
-
   int s_print_listing;  // convenient to print internal algorithms
                         // of a selected event
   double total_Eloss;
@@ -49,7 +51,7 @@ class HeedDeltaElectron : public eparticle {
                             // because it is randomly generated.
   // Attention: if 0.0, then the electron is already left.
 
-
+  long parent_particle_number;
 
   // Constructors
   HeedDeltaElectron() : eparticle(), s_print_listing(0) {}

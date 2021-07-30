@@ -23,9 +23,9 @@ class ComponentConstant : public ComponentBase {
   bool GetVoltageRange(double& vmin, double& vmax);
   void WeightingField(const double x, const double y, const double z,
                       double& wx, double& wy, double& wz,
-                      const std::string& label);
+                      const std::string label);
   double WeightingPotential(const double x, const double y, const double z,
-                            const std::string& label);
+                            const std::string label);
 
   void SetElectricField(const double ex, const double ey, const double ez);
   void SetPotential(const double x, const double y, const double z,
@@ -38,24 +38,24 @@ class ComponentConstant : public ComponentBase {
 
  private:
   // Electric field
-  double m_fx, m_fy, m_fz;
+  double fx, fy, fz;
 
   // Potential
-  bool m_hasPotential;
+  bool hasPotential;
   // Point where potential was specified
-  double m_x0, m_y0, m_z0;
+  double x0, y0, z0;
   // Potential at this point
-  double m_v0;
+  double v0;
 
   // Weighting field
-  bool m_hasWeightingField;
-  std::string m_wfield;
-  double m_fwx, m_fwy, m_fwz;
-  bool m_hasWeightingPotential;
+  bool hasWeightingField;
+  std::string wfield;
+  double fwx, fwy, fwz;
+  bool hasWeightingPotential;
   // Point where the weighting potential was specified
-  double m_wx0, m_wy0, m_wz0;
+  double wx0, wy0, wz0;
   // Weighting potential at this point
-  double m_w0;
+  double w0;
 
   // Reset the component
   void Reset();
